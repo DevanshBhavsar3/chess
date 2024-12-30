@@ -1,19 +1,9 @@
 import { WebSocketServer } from "ws";
-import { Game } from "./Game";
-import { Matchmaker } from "./Matchmaker";
+import { UserManager } from "./UserManager";
 
 const wss = new WebSocketServer({ port: 8080 });
-const matchmaker = new Matchmaker();
+const userManager = new UserManager();
 
 wss.on("connection", (socket) => {
-  matchmaker.add(socket);
-
-  try {
-    const opponent = matchmaker.match(socket);
-    if (!opponent) throw new Error("Opponent not found.");
-
-    new Game(10, opponent, socket);
-  } catch (error) {
-    console.log(error);
-  }
+  userManager.add(socket);
 });

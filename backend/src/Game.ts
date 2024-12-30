@@ -1,17 +1,19 @@
 import { Chess } from "chess.js";
-import { WebSocket } from "ws";
+import { v4 } from "uuid";
 
 export class Game {
-  public time: number;
-  public white: WebSocket;
-  public black: WebSocket;
+  public gameId: string;
+  public player1Id: string;
+  public player2Id: string | null;
+  public chess = new Chess();
 
-  constructor(time: number, white: WebSocket, black: WebSocket) {
-    this.time = time;
-    this.white = white;
-    this.black = black;
+  constructor(gameId: string, player1Id: string, player2Id: string | null) {
+    this.gameId = gameId || v4();
+    this.player1Id = player1Id;
+    this.player2Id = player2Id;
+  }
 
-    let chess = new Chess();
-    console.log("Game started");
+  move(move: string) {
+    console.log(move);
   }
 }
