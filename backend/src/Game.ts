@@ -7,13 +7,20 @@ export class Game {
   public player2Id: string | null;
   public chess = new Chess();
 
-  constructor(gameId: string, player1Id: string, player2Id: string | null) {
+  constructor(
+    gameId: string | null,
+    player1Id: string,
+    player2Id: string | null
+  ) {
     this.gameId = gameId || v4();
     this.player1Id = player1Id;
     this.player2Id = player2Id;
   }
 
   move(move: string) {
-    console.log(move);
+    if (!this.chess.isGameOver) {
+      this.chess.move(move);
+    }
+    console.log(this.chess.fen());
   }
 }
