@@ -18,9 +18,12 @@ export class Game {
   }
 
   move(move: string) {
-    if (!this.chess.isGameOver) {
-      this.chess.move(move);
+    if (!this.chess.isGameOver()) {
+      try {
+        this.chess.move(move);
+      } catch (error) {
+        console.error(error);
+      }
     }
-    console.log(this.chess.fen());
   }
 }

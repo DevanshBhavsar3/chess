@@ -40,7 +40,6 @@ export class UserManager {
         case CREATE_GAME:
           var { gameId } = message.payload;
           this.createGame(user, gameId);
-          console.log(this.games);
           break;
         case MOVE_PIECE:
           var { gameId, move } = message.payload;
@@ -68,8 +67,6 @@ export class UserManager {
 
         pendingGame.player2Id = user.id;
         this.pendingGameId = null;
-
-        console.log("Pendind Game", pendingGame);
       }
     } else {
       const game = new Game(gameId, user.id, null);
