@@ -17,13 +17,38 @@ export class Game {
     this.player2Id = player2Id;
   }
 
+  setPlayer2Id(id: string) {
+    this.player2Id = id;
+  }
+
   move(move: string) {
     if (!this.chess.isGameOver()) {
       try {
         this.chess.move(move);
       } catch (error) {
-        console.error(error);
+        console.error("Invalid Move");
       }
+    } else {
+      return this.gameover();
+    }
+  }
+
+  gameover() {
+    if (this.chess.isCheckmate()) {
+      if (this.chess.turn() === "w") {
+        return "b";
+      } else {
+        return "w";
+      }
+    } else if (
+      this.chess.isStalemate() ||
+      this.chess.isThreefoldRepetition() ||
+      this.chess.isInsufficientMaterial()
+    ) {
+      return "draw";
+    } else {
+      //TODO: Add an aborted game logic
+      return "aborted";
     }
   }
 }
