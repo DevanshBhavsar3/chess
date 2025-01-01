@@ -1,24 +1,24 @@
 import { Chess } from "chess.js";
 import { v4 } from "uuid";
 
+interface Player {
+  id: string;
+  color: "w" | "b";
+}
+
 export class Game {
   public gameId: string;
-  public player1Id: string;
-  public player2Id: string | null;
+  public player1: Player;
+  public player2: Player | null = null;
   public chess = new Chess();
 
-  constructor(
-    gameId: string | null,
-    player1Id: string,
-    player2Id: string | null
-  ) {
+  constructor(gameId: string | null, player1Id: string) {
     this.gameId = gameId || v4();
-    this.player1Id = player1Id;
-    this.player2Id = player2Id;
+    this.player1 = { id: player1Id, color: "w" };
   }
 
-  setPlayer2Id(id: string) {
-    this.player2Id = id;
+  setPlayer2(id: string) {
+    this.player2 = { id, color: "b" };
   }
 
   move(move: string) {
@@ -46,9 +46,14 @@ export class Game {
       this.chess.isInsufficientMaterial()
     ) {
       return "draw";
+    }
+  }
+
+  abort(id: string) {
+    if (this.player1.id === id) {
+      return "b";
     } else {
-      //TODO: Add an aborted game logic
-      return "aborted";
+      return "w";
     }
   }
 }

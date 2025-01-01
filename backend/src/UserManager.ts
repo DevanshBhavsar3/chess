@@ -5,7 +5,7 @@ import { User } from "./types";
 export class UserManager {
   private users: User[];
   private games: Game[];
-  private pendingGameId: string | null = null;
+  private pendingGameIds: string[] = [];
 
   constructor() {
     this.users = [];
@@ -42,13 +42,7 @@ export class UserManager {
     });
 
     user.socket.on("close", () => {
-      this.removeUser(user);
-
-      // TODO: Finish the game where this user was playing.
-      if (this.pendingGameId) {
-        this.removeGame(this.pendingGameId);
-        this.pendingGameId = null;
-      }
+      this.handleExit(user);
 
       console.log(this.users);
       console.log(this.games);
@@ -57,27 +51,32 @@ export class UserManager {
 
   // TODO: Handle dynamic game creation e.g. time
   createGame(user: User, gameId: string) {
-    if (this.pendingGameId) {
-      if (this.pendingGameId === gameId) {
-        const pendingGame = this.games.find((game) => game.gameId === gameId);
+    // if (this.pendingGameIds.length > 0) {
+    const isGamePending = this.pendingGameIds.find(
+      (pendingGameId) => pendingGameId === gameId
+    );
 
-        if (!pendingGame) {
-          console.error("No games found!");
-          return;
-        }
+    if (isGamePending) {
+      const pendingGame = this.games.find((game) => game.gameId === gameId);
 
-        if (user.id === pendingGame.player1Id) {
-          console.error("Can't connect yourself.");
-          return;
-        }
-
-        pendingGame.setPlayer2Id(user.id);
-        this.pendingGameId = null;
+      if (!pendingGame) {
+        console.error("No games found!");
+        return;
       }
+
+      if (user.id === pendingGame.player1.id) {
+        console.error("Can't connect yourself.");
+        return;
+      }
+
+      pendingGame.setPlayer2(user.id);
+      this.pendingGameIds = this.pendingGameIds.filter(
+        (pendingGameId) => pendingGameId !== gameId
+      );
     } else {
-      const game = new Game(gameId, user.id, null);
+      const game = new Game(gameId, user.id);
       this.games.push(game);
-      this.pendingGameId = game.gameId;
+      this.pendingGameIds.push(game.gameId);
     }
   }
 
@@ -86,7 +85,11 @@ export class UserManager {
   }
 
   handleMove(gameId: string, move: string) {
-    if (this.pendingGameId === gameId) {
+    const isGamePending = this.pendingGameIds.find(
+      (pendingGameId) => pendingGameId === gameId
+    );
+
+    if (isGamePending) {
       console.error("Wait for opponent.");
       return;
     }
@@ -101,8 +104,8 @@ export class UserManager {
     const moveResult = game.move(move);
 
     if (moveResult) {
-      const player1 = this.users.find((user) => user.id === game.player1Id);
-      const player2 = this.users.find((user) => user.id === game.player2Id);
+      const player1 = this.users.find((user) => user.id === game.player1.id);
+      const player2 = this.users.find((user) => user.id === game.player2?.id);
 
       if (player1 && player2) {
         player1.socket.send(moveResult);
@@ -119,5 +122,54 @@ export class UserManager {
     }
 
     console.log(moveResult);
+  }
+
+  handleExit(user: User) {
+    // if (this.pendingGameId) {
+    //   this.removeGame(this.pendingGameId);
+    //   this.pendingGameId = null;
+    // } else {
+    console.log("user", user.id);
+
+    this.removeUser(user);
+
+    const game = this.games.find(
+      (game) => game.player1.id === user.id || game.player2?.id === user.id
+    );
+    if (!game) return;
+
+    console.log("game", game.gameId);
+
+    const pendingGameId = this.pendingGameIds.find(
+      (pendingGameId) => pendingGameId === game.gameId
+    );
+
+    console.log("pending", pendingGameId);
+
+    if (pendingGameId) {
+      this.pendingGameIds = this.pendingGameIds.filter(
+        (id) => id !== pendingGameId
+      );
+    } else {
+      const winner = game.abort(user.id);
+
+      if (winner === "w") {
+        const player1 = this.users.find((user) => user.id === game.player1.id);
+
+        if (!player1) return;
+
+        player1.socket.send("Black Aborted");
+        player1.socket.close();
+      } else {
+        const player2 = this.users.find((user) => user.id === game.player2?.id);
+
+        if (!player2) return;
+
+        player2.socket.send("White Aborted");
+        player2.socket.close();
+      }
+    }
+
+    this.removeGame(game.gameId);
   }
 }
