@@ -1,5 +1,5 @@
 import { Game } from "./Game";
-import { CREATE_GAME, MOVE_PIECE } from "./messages";
+import { BOARD_UPDATE, CREATE_GAME, GAME_OVER, MOVE_PIECE } from "./messages";
 import { User } from "./types";
 
 export class UserManager {
@@ -15,7 +15,6 @@ export class UserManager {
   add(user: User) {
     this.users.push(user);
     this.messageHandler(user);
-    console.log(this.users);
   }
 
   removeUser(player: User) {
@@ -25,27 +24,21 @@ export class UserManager {
   messageHandler(user: User) {
     user.socket.on("message", (data) => {
       const message = JSON.parse(data.toString());
-
+      console.log(message);
       switch (message.message) {
         case CREATE_GAME:
           var { gameId } = message.payload;
           this.createGame(user, gameId);
-
-          console.log(this.games);
-
           break;
         case MOVE_PIECE:
           var { gameId, move } = message.payload;
-          this.handleMove(gameId, move);
+          this.handleMove(gameId, move, user);
           break;
       }
     });
 
     user.socket.on("close", () => {
       this.handleExit(user);
-
-      console.log(this.users);
-      console.log(this.games);
     });
   }
 
@@ -84,7 +77,7 @@ export class UserManager {
     this.games = this.games.filter((game) => game.gameId != gameId);
   }
 
-  handleMove(gameId: string, move: string) {
+  handleMove(gameId: string, move: string, user: User) {
     const isGamePending = this.pendingGameIds.find(
       (pendingGameId) => pendingGameId === gameId
     );
@@ -101,36 +94,20 @@ export class UserManager {
       return;
     }
 
-    const moveResult = game.move(move);
+    const updatedBoard = game.move(move, user.id);
 
-    if (moveResult) {
+    if (updatedBoard) {
       const player1 = this.users.find((user) => user.id === game.player1.id);
       const player2 = this.users.find((user) => user.id === game.player2?.id);
 
       if (player1 && player2) {
-        player1.socket.send(moveResult);
-        player1.socket.close();
-
-        player2.socket.send(moveResult);
-        player2.socket.close();
-
-        this.removeUser(player1);
-        this.removeUser(player2);
+        player1.socket.emit(BOARD_UPDATE, updatedBoard);
+        player2.socket.emit(BOARD_UPDATE, updatedBoard);
       }
-
-      this.removeGame(game.gameId);
     }
-
-    console.log(moveResult);
   }
 
   handleExit(user: User) {
-    // if (this.pendingGameId) {
-    //   this.removeGame(this.pendingGameId);
-    //   this.pendingGameId = null;
-    // } else {
-    console.log("user", user.id);
-
     this.removeUser(user);
 
     const game = this.games.find(
@@ -138,13 +115,9 @@ export class UserManager {
     );
     if (!game) return;
 
-    console.log("game", game.gameId);
-
     const pendingGameId = this.pendingGameIds.find(
       (pendingGameId) => pendingGameId === game.gameId
     );
-
-    console.log("pending", pendingGameId);
 
     if (pendingGameId) {
       this.pendingGameIds = this.pendingGameIds.filter(
@@ -158,14 +131,14 @@ export class UserManager {
 
         if (!player1) return;
 
-        player1.socket.send("Black Aborted");
+        player1.socket.emit(GAME_OVER, "Black Aborted");
         player1.socket.close();
       } else {
         const player2 = this.users.find((user) => user.id === game.player2?.id);
 
         if (!player2) return;
 
-        player2.socket.send("White Aborted");
+        player2.socket.emit(GAME_OVER, "White Aborted");
         player2.socket.close();
       }
     }
