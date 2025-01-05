@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { v4 } from "uuid";
 
 export default function HomePage() {
   return (
@@ -11,9 +12,12 @@ export default function HomePage() {
         <h1 className="z-20 text-4xl sm:text-5xl font-bold text-wrap text-center">
           Play Chess Online <br /> on the #3 Site!
         </h1>
-        <button className="z-20 bg-blue-700 hover:bg-blue-600 py-3 px-10 rounded-lg border-b-4 border-b-blue-900 ">
-          <Link to="/game">Play Online</Link>
-        </button>
+        <Link
+          to={`/game?id=${v4()}`}
+          className="z-20 bg-blue-700 hover:bg-blue-600 py-3 px-10 rounded-lg border-b-4 border-b-blue-900 "
+        >
+          Play Online
+        </Link>
       </div>
     </>
   );

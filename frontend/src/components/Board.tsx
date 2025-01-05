@@ -1,5 +1,6 @@
-import { Chess, Move, Square, SQUARES } from "chess.js";
+import { Chess, Square, SQUARES } from "chess.js";
 import { useState } from "react";
+import GameOverPopup from "./GameOverPopup";
 
 const chess = new Chess();
 
@@ -7,7 +8,7 @@ export default function Board() {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [availableMoves, setAvailaleMoves] = useState<string[]>([]);
 
-  function movePiece(to: string) {
+  function movePiece(to: Square) {
     if (!selectedSquare) return;
 
     if (selectedSquare === to) {
@@ -20,10 +21,9 @@ export default function Board() {
       chess.move({
         from: selectedSquare,
         to,
+        //defaults to queen promotion
+        promotion: "q",
       });
-
-      if (chess.isGameOver()) {
-      }
     } catch (error) {
       console.error(error);
       setSelectedSquare(null);
@@ -36,6 +36,8 @@ export default function Board() {
   }
 
   function showAvailableMoves(square: Square) {
+    if (chess.isGameOver()) return;
+
     const tempChess = new Chess(chess.fen());
     const availableMoves = [];
 
@@ -54,30 +56,34 @@ export default function Board() {
   }
 
   return (
-    <div className="border-2 rounded-md m-1 grid grid-cols-8">
+    <div className="border-2 rounded-md grid grid-cols-8">
       {SQUARES.map((square, index) => (
         <div
           id={square}
           key={square}
           onClick={() => movePiece(square)}
-          className={`h-16 w-16 flex justify-center items-center relative
-            ${selectedSquare === square ? "bg-[#fff35f]" : ""}
+          className={`h-16 w-16 flex justify-center items-center
             ${
               (index + parseInt(square[1])) % 2 !== 0
                 ? "bg-blue-400"
                 : "bg-blue-100"
-            }`}
+            }
+            ${selectedSquare === square ? "bg-yellow-400" : ""}`}
         >
           {chess.get(square) && (
             <img
               id={square}
+              data-player={chess.get(square).color}
               className={
                 availableMoves.includes(square)
                   ? "border-4 border-black/30 rounded-full"
                   : ""
               }
               src={`${chess.get(square).color}${chess.get(square).type}.png`}
-              onClick={() => showAvailableMoves(square)}
+              onClick={() => {
+                setSelectedSquare(null);
+                showAvailableMoves(square);
+              }}
             />
           )}
           {availableMoves.includes(square) && (
@@ -85,6 +91,9 @@ export default function Board() {
           )}
         </div>
       ))}
+      {chess.isGameOver() && (
+        <GameOverPopup winner={chess.turn() === "w" ? "Black" : "White"} />
+      )}
     </div>
   );
 }
